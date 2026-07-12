@@ -7,55 +7,27 @@
       "entries": [
         {
           "type": "minecraft:item",
-          "name": "minecraft:bone"
-        }
-      ],
-      "functions": [
-        {
-          "function": "minecraft:set_count",
-          "count": {
-            "type": "minecraft:uniform",
-            "min": 0.0,
-            "max": 2.0
-          },
-          "add": false
-        },
-        {
-          "function": "minecraft:looting_enchant",
-          "count": {
-            "type": "minecraft:uniform",
-            "min": 0.0,
-            "max": 1.0
-          }
-        }
-      ]
-    },
-    {
-      "rolls": 1.0,
-      "bonus_rolls": 0.0,
-      "entries": [
-        {
-          "type": "minecraft:item",
-          "name": "minecraft:arrow"
-        }
-      ],
-      "functions": [
-        {
-          "function": "minecraft:set_count",
-          "count": {
-            "type": "minecraft:uniform",
-            "min": 0.0,
-            "max": 2.0
-          },
-          "add": false
-        },
-        {
-          "function": "minecraft:looting_enchant",
-          "count": {
-            "type": "minecraft:uniform",
-            "min": 0.0,
-            "max": 1.0
-          }
+          "name": "minecraft:arrow",
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 0.0,
+                "max": 2.0
+              },
+              "add": false
+            },
+            {
+              "function": "minecraft:enchanted_count_increase",
+              "enchantment": "minecraft:looting",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 0.0,
+                "max": 1.0
+              }
+            }
+          ]
         }
       ]
     },
@@ -65,58 +37,100 @@
       "entries": [
         {
           "type": "minecraft:item",
-          "name": "minecraft:mud"
-        }
-      ],
-      "functions": [
-        {
-          "function": "minecraft:set_count",
-          "count": {
-            "type": "minecraft:uniform",
-            "min": 0.0,
-            "max": 2.0
-          },
-          "add": false
-        },
-        {
-          "function": "minecraft:looting_enchant",
-          "count": {
-            "type": "minecraft:uniform",
-            "min": 0.0,
-            "max": 1.0
-          }
+          "name": "minecraft:bone",
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 0.0,
+                "max": 2.0
+              },
+              "add": false
+            },
+            {
+              "function": "minecraft:enchanted_count_increase",
+              "enchantment": "minecraft:looting",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 0.0,
+                "max": 1.0
+              }
+            }
+          ]
         }
       ]
     },
     {
       "rolls": 1.0,
       "bonus_rolls": 0.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:mud",
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 0.0,
+                "max": 2.0
+              },
+              "add": false
+            },
+            {
+              "function": "minecraft:enchanted_count_increase",
+              "enchantment": "minecraft:looting",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 0.0,
+                "max": 1.0
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rolls": 1.0,
+      "bonus_rolls": 0.0,
+      "conditions": [
+        {
+          "condition": "minecraft:killed_by_player"
+        }
+      ],
       "entries": [
         {
           "type": "minecraft:item",
           "name": "minecraft:tipped_arrow",
           "functions": [
             {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 0.0,
+                "max": 1.0
+              },
+              "add": false
+            },
+            {
+              "function": "minecraft:enchanted_count_increase",
+              "enchantment": "minecraft:looting",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 0.0,
+                "max": 1.0
+              },
+              "limit": 1
+            },
+            {
               "function": "minecraft:set_potion",
               "id": "minecraft:poison"
             }
           ]
         }
-      ],
-      "conditions": [
-        {
-          "condition": "minecraft:killed_by_player"
-        }
-      ],
-      "chances": [
-        0.5,
-        0.41666668,
-        0.33333334,
-        0.25,
-        0.16666667,
-        0.083333336,
-        0.0
       ]
     }
-  ]
+  ],
+  "random_sequence": "minecraft:entities/bogged"
 }
