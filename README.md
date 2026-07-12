@@ -1,15 +1,21 @@
 <div align="center">
 
-# Mud-Bogged
+# Loot Table Datapacks
 
-Make the Minecraft Bogged drop Mud
+Simple loot table tweak datapacks
 
 </div>
 
 
 ## Overview
 
-There's not a lot to it...
+Maked the bogged drop mud, husks drop sand, etc.
+
+### Features
+
+- [x] Bogged drop mud
+- [ ] Husks drop sand
+- [ ] Strays drop ice
 
 ## Quickstart
 
