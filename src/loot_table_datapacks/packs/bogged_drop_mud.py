@@ -5,7 +5,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ..common import Pack, json_dumps, loot_table_dir, looting_function, pack_mcmeta
+from ..common import (
+    Pack,
+    Target,
+    json_dumps,
+    loot_table_dir,
+    looting_function,
+    pack_mcmeta,
+)
 
 DESCRIPTION = "Make the Bogged drop Mud (0-2)"
 
@@ -98,12 +105,12 @@ def _loot_table(fmt: tuple[int, int]) -> dict[str, Any]:
     }
 
 
-def build(fmt: tuple[int, int]) -> dict[str, str | bytes]:
+def build(target: Target) -> dict[str, str | bytes]:
+    fmt = target.pack_format
     if fmt < MIN_FORMAT:
-        major, _ = fmt
         raise ValueError(
             f"The Bogged first appeared in 1.21 (format {MIN_FORMAT[0]}); "
-            f"cannot build for format {major}.",
+            f"cannot build for format {fmt[0]}.",
         )
 
     files: dict[str, str | bytes] = {

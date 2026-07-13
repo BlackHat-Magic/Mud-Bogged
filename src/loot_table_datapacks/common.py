@@ -9,33 +9,87 @@ from typing import Any, Callable
 # emitted in pack.mcmeta as [major, minor].
 # Source: https://minecraft.wiki/w/Pack_format
 PACK_FORMATS: dict[str, tuple[int, int]] = {
+    # 1.13-1.14.4 (format 4) - datapacks introduced in 1.13
+    "1.13": (4, 0),
+    "1.13.1": (4, 0),
+    "1.13.2": (4, 0),
+    "1.14": (4, 0),
+    "1.14.1": (4, 0),
+    "1.14.2": (4, 0),
+    "1.14.3": (4, 0),
+    "1.14.4": (4, 0),
+    # 1.15-1.16.1 (format 5)
+    "1.15": (5, 0),
+    "1.15.1": (5, 0),
+    "1.15.2": (5, 0),
+    "1.16": (5, 0),
+    "1.16.1": (5, 0),
+    # 1.16.2-1.16.5 (format 6)
+    "1.16.2": (6, 0),
+    "1.16.3": (6, 0),
+    "1.16.4": (6, 0),
+    "1.16.5": (6, 0),
+    # 1.17-1.17.1 (format 7)
+    "1.17": (7, 0),
+    "1.17.1": (7, 0),
+    # 1.18-1.18.1 (format 8)
+    "1.18": (8, 0),
+    "1.18.1": (8, 0),
+    # 1.18.2 (format 9)
+    "1.18.2": (9, 0),
+    # 1.19-1.19.3 (format 10)
+    "1.19": (10, 0),
+    "1.19.1": (10, 0),
+    "1.19.2": (10, 0),
+    "1.19.3": (10, 0),
+    # 1.19.4 (format 12)
+    "1.19.4": (12, 0),
+    # 1.20-1.20.1 (format 15)
+    "1.20": (15, 0),
+    "1.20.1": (15, 0),
+    # 1.20.2 (format 18)
+    "1.20.2": (18, 0),
+    # 1.20.3-1.20.4 (format 26)
+    "1.20.3": (26, 0),
+    "1.20.4": (26, 0),
+    # 1.20.5-1.20.6 (format 41)
     "1.20.5": (41, 0),
     "1.20.6": (41, 0),
+    # 1.21-1.21.1 (format 48)
     "1.21": (48, 0),
     "1.21.1": (48, 0),
+    # 1.21.2-1.21.3 (format 57)
     "1.21.2": (57, 0),
     "1.21.3": (57, 0),
+    # 1.21.4 (format 61)
     "1.21.4": (61, 0),
+    # 1.21.5 (format 71)
     "1.21.5": (71, 0),
+    # 1.21.6 (format 80)
     "1.21.6": (80, 0),
+    # 1.21.7-1.21.8 (format 81)
     "1.21.7": (81, 0),
     "1.21.8": (81, 0),
+    # 1.21.9-1.21.10 (format 88)
     "1.21.9": (88, 0),
     "1.21.10": (88, 0),
+    # 1.21.11 (format 94, minor 1)
     "1.21.11": (94, 1),
+    # 26.1-26.1.2 (format 101, minor 1)
     "26.1": (101, 1),
     "26.1.1": (101, 1),
     "26.1.2": (101, 1),
+    # 26.2 (format 107, minor 1)
     "26.2": (107, 1),
 }
 
 LATEST_VERSION = "26.2"
 
-# Oldest datapack format this tooling emits. Below this the loot-table folder
-# was plural (`loot_tables`) and the looting function was `looting_enchant`; the
-# generator handles both, but versions older than 1.20.5 predate the datapack
-# shape this project targets.
-MIN_SUPPORTED_FORMAT: tuple[int, int] = (41, 0)
+# Oldest datapack format this tooling emits. Datapacks were introduced in 1.13
+# (pack_format 4); that is the floor for every pack built by this project.
+# Individual packs may declare a higher `min_format` (e.g. the Bogged only exists
+# from 1.21 onward).
+MIN_SUPPORTED_FORMAT: tuple[int, int] = (4, 0)
 
 # Format thresholds for the three version-sensitive transforms. Compared by
 # major version only.
@@ -47,6 +101,21 @@ NEW_META_FORMAT = 82  # 1.21.9: pack_format -> min_format/max_format
 
 
 @dataclass(frozen=True)
+class Target:
+    """A resolved build target: a Minecraft version and its pack format.
+
+    `pack_format` drives pack.mcmeta. `version` is the canonical Java Edition
+    release (e.g. "1.13.2", "1.21.11"); packs whose loot-table shape evolved
+    independently of pack_format (notably the Husk, where pack_format 4 covers
+    both the unprefixed 1.13 era and the prefixed 1.14 era) derive their content
+    era from `version` rather than from the format number alone.
+    """
+
+    version: str
+    pack_format: tuple[int, int]
+
+
+@dataclass(frozen=True)
 class Pack:
     """A distributable datapack this project can generate."""
 
@@ -54,11 +123,17 @@ class Pack:
     display_name: str
     description: str
     min_format: tuple[int, int]
-    build: Callable[[tuple[int, int]], dict[str, str | bytes]]
+    build: Callable[[Target], dict[str, str | bytes]]
 
 
-def resolve_format(version: str | None, fmt: str | None) -> tuple[int, int]:
-    """Resolve a target datapack format from a version string or explicit format."""
+def resolve_target(version: str | None, fmt: str | None) -> Target:
+    """Resolve a build target from a version string or an explicit pack format.
+
+    If `fmt` is given, the version defaults to the latest release sharing that
+    pack_format (so `-f 4` resolves to 1.14.4, the last format-4 release). This
+    matters because some pack_format numbers span releases with differing
+    loot-table content conventions (e.g. format 4 = both 1.13 and 1.14).
+    """
     if fmt is not None:
         parsed = _parse_format(fmt)
         if parsed < MIN_SUPPORTED_FORMAT:
@@ -66,13 +141,26 @@ def resolve_format(version: str | None, fmt: str | None) -> tuple[int, int]:
                 f"Datapack format {fmt} is not supported "
                 f"(minimum is {MIN_SUPPORTED_FORMAT[0]}).",
             )
-        return parsed
+        resolved = _latest_version_for_format(parsed)
+        if resolved is None:
+            raise ValueError(
+                f"No known Minecraft release uses pack format {fmt}.",
+            )
+        return Target(version=resolved, pack_format=parsed)
 
     version = LATEST_VERSION if version is None else version
     if version not in PACK_FORMATS:
         known = ", ".join(sorted(PACK_FORMATS, key=_version_sort_key, reverse=True))
         raise ValueError(f"Unknown version {version!r}. Known: {known}")
-    return PACK_FORMATS[version]
+    return Target(version=version, pack_format=PACK_FORMATS[version])
+
+
+def _latest_version_for_format(fmt: tuple[int, int]) -> str | None:
+    """Newest release string that maps to the given (major, minor) pack format."""
+    matches = [v for v, pf in PACK_FORMATS.items() if pf == fmt]
+    if not matches:
+        return None
+    return max(matches, key=_version_sort_key)
 
 
 def _parse_format(fmt: str) -> tuple[int, int]:

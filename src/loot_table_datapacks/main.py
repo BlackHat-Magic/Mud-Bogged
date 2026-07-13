@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .common import resolve_format, write_pack
+from .common import resolve_target, write_pack
 from .packs import PACKS
 
 
@@ -42,21 +42,26 @@ def main() -> None:
     pack = PACKS[args.pack]
 
     try:
-        fmt = resolve_format(args.version, args.format)
+        target = resolve_target(args.version, args.format)
     except ValueError as err:
         parser.error(str(err))
 
-    if fmt < pack.min_format:
+    if target.pack_format < pack.min_format:
         parser.error(
-            f"Pack {pack.name!r} requires format >= {pack.min_format[0]}; got {fmt[0]}."
+            f"Pack {pack.name!r} requires format >= {pack.min_format[0]}; "
+            f"got {target.pack_format[0]}."
         )
 
     out = Path(args.output) if args.output else Path(pack.display_name)
-    files = pack.build(fmt)
+    files = pack.build(target)
     write_pack(out, files)
 
-    fmt_str = f"{fmt[0]}" if fmt[1] == 0 else f"{fmt[0]}.{fmt[1]}"
-    print(f"Built {pack.display_name} for format {fmt_str} -> {out}")
+    fmt_str = (
+        f"{target.pack_format[0]}"
+        if target.pack_format[1] == 0
+        else f"{target.pack_format[0]}.{target.pack_format[1]}"
+    )
+    print(f"Built {pack.display_name} for {target.version} (format {fmt_str}) -> {out}")
     for rel in sorted(files):
         print(f"  {rel}")
 
