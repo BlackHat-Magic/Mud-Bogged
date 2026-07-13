@@ -217,6 +217,12 @@ def json_dumps(obj: Any) -> str:
     return json.dumps(obj, indent=2, ensure_ascii=False) + "\n"
 
 
+def pack_png(pack_name: str) -> bytes | None:
+    """Read a pack's icon from packs/static/<pack_name>.png, or None if absent."""
+    p = Path(__file__).parent / "packs" / "static" / f"{pack_name}.png"
+    return p.read_bytes() if p.is_file() else None
+
+
 def write_pack(out: Path, files: dict[str, str | bytes]) -> None:
     """Write a generated pack to `out`, replacing any existing pack there."""
     import shutil

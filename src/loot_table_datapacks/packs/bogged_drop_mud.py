@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 from ..common import (
@@ -12,6 +11,7 @@ from ..common import (
     loot_table_dir,
     looting_function,
     pack_mcmeta,
+    pack_png,
 )
 
 DESCRIPTION = "Make the Bogged drop Mud (0-2)"
@@ -19,8 +19,6 @@ DESCRIPTION = "Make the Bogged drop Mud (0-2)"
 # The Bogged was introduced in 1.21 (pack format 48), so this pack cannot be
 # built for anything older.
 MIN_FORMAT: tuple[int, int] = (48, 0)
-
-_STATIC = Path(__file__).parent / "static"
 
 
 def _item_pool(
@@ -120,9 +118,9 @@ def build(target: Target) -> dict[str, str | bytes]:
         ),
     }
 
-    pack_png = _STATIC / "pack.png"
-    if pack_png.is_file():
-        files["pack.png"] = pack_png.read_bytes()
+    icon = pack_png(PACK.name)
+    if icon is not None:
+        files["pack.png"] = icon
 
     return files
 

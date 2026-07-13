@@ -2,18 +2,15 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
-from ..common import Pack, Target, json_dumps, loot_table_dir, pack_mcmeta
+from ..common import Pack, Target, json_dumps, loot_table_dir, pack_mcmeta, pack_png
 
 DESCRIPTION = "Make the Stray drop Ice (0-2)"
 
 # The Stray has existed since 1.10 and datapacks since 1.13, so this pack can be
 # built all the way back to format 4 (1.13).
 MIN_FORMAT: tuple[int, int] = (4, 0)
-
-_STATIC = Path(__file__).parent / "static"
 
 
 # --------------------------------------------------------------------------- #
@@ -222,9 +219,9 @@ def build(target: Target) -> dict[str, str | bytes]:
         ),
     }
 
-    pack_png = _STATIC / "pack.png"
-    if pack_png.is_file():
-        files["pack.png"] = pack_png.read_bytes()
+    icon = pack_png(PACK.name)
+    if icon is not None:
+        files["pack.png"] = icon
 
     return files
 
