@@ -1,13 +1,23 @@
 [project]
 name = "loot-table-datapacks"
 version = "0.1.0"
-description = "Add your description here"
+description = "Generates loot-table-tweak datapacks for a chosen Minecraft version."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = []
+
+[project.scripts]
+loot-table-datapacks = "loot_table_datapacks.main:main"
 
 [dependency-groups]
 dev = [
     "ruff>=0.15.21",
     "ty>=0.0.59",
 ]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/loot_table_datapacks"]
