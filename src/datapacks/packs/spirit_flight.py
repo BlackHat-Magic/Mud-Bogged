@@ -85,6 +85,57 @@ def _enchantment_tag() -> dict[str, Any]:
     }
 
 
+def _level_book_entry(level: int) -> dict[str, Any]:
+    return {
+        "type": "minecraft:item",
+        "name": "minecraft:book",
+        "functions": [
+            {
+                "function": "minecraft:set_enchantments",
+                "enchantments": {ENCHANTMENT_ID: level},
+            }
+        ],
+    }
+
+
+def _level_harness_entry(color: str, level: int) -> dict[str, Any]:
+    return {
+        "type": "minecraft:item",
+        "name": f"minecraft:{color}_harness",
+        "functions": [
+            {
+                "function": "minecraft:set_enchantments",
+                "enchantments": {ENCHANTMENT_ID: level},
+            }
+        ],
+    }
+
+
+def _book_1_5_table() -> dict[str, Any]:
+    return {
+        "type": "minecraft:empty",
+        "pools": [
+            {
+                "rolls": 1.0,
+                "bonus_rolls": 0.0,
+                "entries": [_level_book_entry(i) for i in range(1, 6)],
+            }
+        ],
+    }
+
+
+def _harness_1_5_table() -> dict[str, Any]:
+    entries = [
+        _level_harness_entry(color, level)
+        for color in HARNESS_COLORS
+        for level in range(1, 6)
+    ]
+    return {
+        "type": "minecraft:empty",
+        "pools": [{"rolls": 1.0, "bonus_rolls": 0.0, "entries": entries}],
+    }
+
+
 def build(target: Target) -> dict[str, str | bytes]:
     fmt = target.pack_format
     if fmt < MIN_FORMAT:
@@ -103,6 +154,10 @@ def build(target: Target) -> dict[str, str | bytes]:
         ),
         "data/spirit_flight/tags/enchantment/spirit_flight.json": json_dumps(
             _enchantment_tag()
+        ),
+        "data/spirit_flight/loot_table/book_1_5.json": json_dumps(_book_1_5_table()),
+        "data/spirit_flight/loot_table/harness_1_5.json": json_dumps(
+            _harness_1_5_table()
         ),
     }
 

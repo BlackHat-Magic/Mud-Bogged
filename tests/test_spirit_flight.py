@@ -74,3 +74,51 @@ def test_enchantment_tag_present():
     assert "data/spirit_flight/tags/enchantment/spirit_flight.json" in files
     t = json.loads(files["data/spirit_flight/tags/enchantment/spirit_flight.json"])
     assert t["values"] == [sf.ENCHANTMENT_ID]
+
+
+def test_book_1_5_subtable():
+    files = _build_files("1.21.6")
+    assert "data/spirit_flight/loot_table/book_1_5.json" in files
+    t = json.loads(files["data/spirit_flight/loot_table/book_1_5.json"])
+    entries = t["pools"][0]["entries"]
+    assert len(entries) == 5
+    for i, e in enumerate(entries, start=1):
+        assert e["type"] == "minecraft:item"
+        assert e["name"] == "minecraft:book"
+        fns = e["functions"]
+        assert len(fns) == 1
+        assert fns[0]["function"] == "minecraft:set_enchantments"
+        assert fns[0]["enchantments"] == {"spirit_flight:spirit_flight": i}
+
+
+def test_harness_1_5_subtable_has_80_entries():
+    files = _build_files("1.21.6")
+    assert "data/spirit_flight/loot_table/harness_1_5.json" in files
+    t = json.loads(files["data/spirit_flight/loot_table/harness_1_5.json"])
+    entries = t["pools"][0]["entries"]
+    assert len(entries) == 80  # 16 colors * 5 levels
+    for e in entries:
+        assert e["type"] == "minecraft:item"
+        assert e["name"].endswith("_harness")
+        lvl = e["functions"][0]["enchantments"]["spirit_flight:spirit_flight"]
+        assert 1 <= lvl <= 5
+
+
+def test_harness_subtable_covers_all_16_colors():
+    files = _build_files("1.21.6")
+    t = json.loads(files["data/spirit_flight/loot_table/harness_1_5.json"])
+    names = {e["name"] for e in t["pools"][0]["entries"]}
+    expected = {f"minecraft:{c}_harness" for c in sf.HARNESS_COLORS}
+    assert names == expected
+
+
+def test_harness_subtable_each_color_has_all_5_levels():
+    files = _build_files("1.21.6")
+    t = json.loads(files["data/spirit_flight/loot_table/harness_1_5.json"])
+    seen = {c: set() for c in sf.HARNESS_COLORS}
+    for e in t["pools"][0]["entries"]:
+        color = e["name"].removeprefix("minecraft:").removesuffix("_harness")
+        lvl = e["functions"][0]["enchantments"]["spirit_flight:spirit_flight"]
+        seen[color].add(lvl)
+    for color, levels in seen.items():
+        assert levels == {1, 2, 3, 4, 5}, color
