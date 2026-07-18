@@ -127,6 +127,7 @@ def _rare_drop_pool() -> dict[str, Any]:
             {"type": "minecraft:item", "name": "minecraft:glow_berries"},
             {"type": "minecraft:item", "name": "minecraft:azalea"},
             {"type": "minecraft:item", "name": "minecraft:flowering_azalea"},
+            {"type": "minecraft:item", "name": "minecraft:mangrove_propagule"},
         ],
     }
 
