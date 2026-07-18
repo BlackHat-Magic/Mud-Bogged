@@ -63,8 +63,8 @@ def test_enchantment_has_flying_speed_attribute_effect():
 
 def test_harnesses_item_tag_present():
     files = _build_files("1.21.6")
-    assert "data/spirit_flight/tags/item/harnesses_enchantable.json" in files
-    t = json.loads(files["data/spirit_flight/tags/item/harnesses_enchantable.json"])
+    assert "data/spirit_flight/tags/item/harnesses.json" in files
+    t = json.loads(files["data/spirit_flight/tags/item/harnesses.json"])
     assert "replace" in t and t["replace"] is False
     assert t["values"] == ["#minecraft:harnesses"]
 
@@ -74,6 +74,17 @@ def test_enchantment_tag_present():
     assert "data/spirit_flight/tags/enchantment/spirit_flight.json" in files
     t = json.loads(files["data/spirit_flight/tags/enchantment/spirit_flight.json"])
     assert t["values"] == [sf.ENCHANTMENT_ID]
+
+
+def test_supported_items_tag_file_is_emitted():
+    """Cross-file reference check: every #ns:name tag the enchantment
+    references must be declared by an emitted tag file."""
+    files = _build_files("1.21.6")
+    e = json.loads(files["data/spirit_flight/enchantment/spirit_flight.json"])
+    for ref in (e["supported_items"], e["primary_items"]):
+        ns, name = ref.removeprefix("#").split(":")
+        path = f"data/{ns}/tags/item/{name}.json"
+        assert path in files, ref
 
 
 def test_book_1_5_subtable():
@@ -247,7 +258,7 @@ def test_builds_for_all_supported_versions(version):
     required = [
         "pack.mcmeta",
         "data/spirit_flight/enchantment/spirit_flight.json",
-        "data/spirit_flight/tags/item/harnesses_enchantable.json",
+        "data/spirit_flight/tags/item/harnesses.json",
         "data/spirit_flight/tags/enchantment/spirit_flight.json",
         "data/spirit_flight/loot_table/book_1_5.json",
         "data/spirit_flight/loot_table/harness_1_5.json",

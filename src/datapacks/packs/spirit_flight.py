@@ -237,7 +237,7 @@ def build(target: Target) -> dict[str, str | bytes]:
         "data/spirit_flight/enchantment/spirit_flight.json": json_dumps(
             _enchantment_json()
         ),
-        "data/spirit_flight/tags/item/harnesses_enchantable.json": json_dumps(
+        "data/spirit_flight/tags/item/harnesses.json": json_dumps(
             _harnesses_item_tag()
         ),
         "data/spirit_flight/tags/enchantment/spirit_flight.json": json_dumps(
