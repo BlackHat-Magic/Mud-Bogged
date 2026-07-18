@@ -202,19 +202,20 @@ def _rare_drop_condition(v: tuple[int, ...]) -> dict[str, Any]:
 
 def _rare_drop_pool(v: tuple[int, ...]) -> dict[str, Any]:
     """Rare cold-weather drops gated by killed_by_player + Looting-scaled
-    chance. One-stack-of-one of: powder_snow_bucket, packed_ice, or blue_ice.
-    All three items only exist from 1.17 forward (powder_snow_bucket is the
-    limiting one), so the caller must gate pool emission on `v >= (1, 17)`.
+    chance. One-stack-of-one chosen from: powder_snow_bucket (1.17+),
+    packed_ice, blue_ice. Pre-1.17 the powder_snow_bucket entry is omitted
+    (the item doesn't exist yet); the other two remain available.
     """
     pool = _rolls(v)
     pool["conditions"] = [
         {"condition": _ns(v, "minecraft:killed_by_player")},
         _rare_drop_condition(v),
     ]
+    items = ["minecraft:packed_ice", "minecraft:blue_ice"]
+    if v >= (1, 17):
+        items.insert(0, "minecraft:powder_snow_bucket")
     entries: list[dict[str, Any]] = [
-        {"type": _ns(v, "minecraft:item"), "name": "minecraft:powder_snow_bucket"},
-        {"type": _ns(v, "minecraft:item"), "name": "minecraft:packed_ice"},
-        {"type": _ns(v, "minecraft:item"), "name": "minecraft:blue_ice"},
+        {"type": _ns(v, "minecraft:item"), "name": item} for item in items
     ]
     if v < (1, 14):
         for e in entries:
@@ -273,11 +274,8 @@ def _loot_table(v: tuple[int, ...]) -> dict[str, Any]:
             v, ("minecraft:snowball", "minecraft:snow_block", "minecraft:ice")
         ),
         _tipped_arrow_pool(v),
+        _rare_drop_pool(v),
     ]
-    # The rare cold-weather drops (powder_snow_bucket, packed_ice, blue_ice)
-    # only exist from 1.17 onward; gate the pool on the era run.
-    if v >= (1, 17):
-        pools.append(_rare_drop_pool(v))
 
     table: dict[str, Any] = {}
     if _prefixed(v):
