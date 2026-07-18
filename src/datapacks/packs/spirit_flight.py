@@ -22,6 +22,8 @@ VANILLA_FLYING_SPEED = 0.05
 # Enchantment constants. See spec for rationale.
 ENCHANTMENT_NAMESPACE = "spirit_flight"
 ENCHANTMENT_ID = f"{ENCHANTMENT_NAMESPACE}:spirit_flight"
+# Per spec: 5 levels scaling flying_speed from vanilla 0.05 up to ~20 m/s at level V.
+MAX_ENCHANTMENT_LEVEL = 5
 
 HARNESS_COLORS = (
     "white",
@@ -49,7 +51,7 @@ def _enchantment_json() -> dict[str, Any]:
         "supported_items": "#spirit_flight:harnesses",
         "primary_items": "#spirit_flight:harnesses",
         "weight": 2,
-        "max_level": 5,
+        "max_level": MAX_ENCHANTMENT_LEVEL,
         "min_cost": {"base": 15, "per_level_above_first": 10},
         "max_cost": {"base": 40, "per_level_above_first": 10},
         "anvil_cost": 4,
@@ -118,7 +120,9 @@ def _book_1_5_table() -> dict[str, Any]:
             {
                 "rolls": 1.0,
                 "bonus_rolls": 0.0,
-                "entries": [_level_book_entry(i) for i in range(1, 6)],
+                "entries": [
+                    _level_book_entry(i) for i in range(1, MAX_ENCHANTMENT_LEVEL + 1)
+                ],
             }
         ],
     }
@@ -128,7 +132,7 @@ def _harness_1_5_table() -> dict[str, Any]:
     entries = [
         _level_harness_entry(color, level)
         for color in HARNESS_COLORS
-        for level in range(1, 6)
+        for level in range(1, MAX_ENCHANTMENT_LEVEL + 1)
     ]
     return {
         "type": "minecraft:empty",
