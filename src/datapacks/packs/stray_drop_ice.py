@@ -1,4 +1,4 @@
-"""Stray-Drop-Ice: make the Stray drop 0-2 Ice."""
+"""Stray-Drop-Ice: make the Stray drop Snowball/Snow Block/Ice plus rare cold drops."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from typing import Any
 
 from ..common import Pack, Target, json_dumps, loot_table_dir, pack_mcmeta, pack_png
 
-DESCRIPTION = "Make the Stray drop Ice (0-2)"
+DESCRIPTION = "Make the Stray drop Snowball/Snow Block/Ice (0-2) plus rare cold drops"
 
 # The Stray has existed since 1.10 and datapacks since 1.13, so this pack can be
 # built all the way back to format 4 (1.13).
@@ -109,8 +109,8 @@ def _rolls(v: tuple[int, ...]) -> dict[str, Any]:
 def _quantity_pool(v: tuple[int, ...], item: str) -> dict[str, Any]:
     """A single-item pool: set_count 0-2 plus a Looting bonus 0-1.
 
-    Used for the arrow, bone, and added ice pools, so the ice drop mirrors the
-    era's own conventions exactly.
+    Used for the arrow, bone, and individual split-choice entries, so the
+    snow/ice drop mirrors the era's own conventions exactly.
     """
     set_count: dict[str, Any] = {
         "function": _ns(v, "minecraft:set_count"),
@@ -136,6 +136,90 @@ def _quantity_pool(v: tuple[int, ...], item: str) -> dict[str, Any]:
 
     pool = _rolls(v)
     pool["entries"] = [entry]
+    return pool
+
+
+def _split_quantity_pool(v: tuple[int, ...], items: tuple[str, ...]) -> dict[str, Any]:
+    """A pool with multiple equally-weighted item entries that share the same
+    set_count/looting function shape. Each roll picks ONE of the items
+    (weighted random across entries) so each kill drops one of the choices
+    with a 0-2 count and a Looting bonus. Used for the snow/ice random
+    choice: snowball, snow_block, or ice.
+    """
+    set_count: dict[str, Any] = {
+        "function": _ns(v, "minecraft:set_count"),
+        "count": _count(v, 0, 2, typed=True),
+    }
+    if _modern_pool(v):
+        set_count["add"] = False
+
+    looting: dict[str, Any] = {
+        "function": _looting_fn(v),
+        "count": _count(v, 0, 1, typed=_modern_pool(v)),
+    }
+    if _new_looting(v):
+        looting["enchantment"] = "minecraft:looting"
+
+    entries: list[dict[str, Any]] = []
+    for item in items:
+        entry: dict[str, Any] = {
+            "type": _ns(v, "minecraft:item"),
+            "name": item,
+            "functions": [set_count, looting],
+        }
+        if v < (1, 14):
+            entry["weight"] = 1
+        entries.append(entry)
+
+    pool = _rolls(v)
+    pool["entries"] = entries
+    return pool
+
+
+def _rare_drop_condition(v: tuple[int, ...]) -> dict[str, Any]:
+    """The pool-level chance/looting-shape condition for the rare-drop pool.
+    Mirrors vanilla's stray/husk rare-drop condition shape: vanilla still
+    used random_chance_with_looting pre-1.21 and switched to
+    random_chance_with_enchanted_bonus at 1.21 (this pack's `_new_looting`
+    threshold matches that switch exactly)."""
+    if _new_looting(v):
+        return {
+            "condition": "minecraft:random_chance_with_enchanted_bonus",
+            "unenchanted_chance": 0.025,
+            "enchanted_chance": {
+                "type": "minecraft:linear",
+                "base": 0.035,
+                "per_level_above_first": 0.01,
+            },
+            "enchantment": "minecraft:looting",
+        }
+    return {
+        "condition": _ns(v, "minecraft:random_chance_with_looting"),
+        "chance": 0.025,
+        "looting_multiplier": 0.01,
+    }
+
+
+def _rare_drop_pool(v: tuple[int, ...]) -> dict[str, Any]:
+    """Rare cold-weather drops gated by killed_by_player + Looting-scaled
+    chance. One-stack-of-one of: powder_snow_bucket, packed_ice, or blue_ice.
+    All three items only exist from 1.17 forward (powder_snow_bucket is the
+    limiting one), so the caller must gate pool emission on `v >= (1, 17)`.
+    """
+    pool = _rolls(v)
+    pool["conditions"] = [
+        {"condition": _ns(v, "minecraft:killed_by_player")},
+        _rare_drop_condition(v),
+    ]
+    entries: list[dict[str, Any]] = [
+        {"type": _ns(v, "minecraft:item"), "name": "minecraft:powder_snow_bucket"},
+        {"type": _ns(v, "minecraft:item"), "name": "minecraft:packed_ice"},
+        {"type": _ns(v, "minecraft:item"), "name": "minecraft:blue_ice"},
+    ]
+    if v < (1, 14):
+        for e in entries:
+            e["weight"] = 1
+    pool["entries"] = entries
     return pool
 
 
@@ -185,9 +269,15 @@ def _loot_table(v: tuple[int, ...]) -> dict[str, Any]:
     pools: list[dict[str, Any]] = [
         _quantity_pool(v, "minecraft:arrow"),
         _quantity_pool(v, "minecraft:bone"),
-        _quantity_pool(v, "minecraft:ice"),
+        _split_quantity_pool(
+            v, ("minecraft:snowball", "minecraft:snow_block", "minecraft:ice")
+        ),
         _tipped_arrow_pool(v),
     ]
+    # The rare cold-weather drops (powder_snow_bucket, packed_ice, blue_ice)
+    # only exist from 1.17 onward; gate the pool on the era run.
+    if v >= (1, 17):
+        pools.append(_rare_drop_pool(v))
 
     table: dict[str, Any] = {}
     if _prefixed(v):
