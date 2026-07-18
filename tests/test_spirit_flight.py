@@ -229,3 +229,36 @@ def test_piglin_bartering_vanilla_entries_preserved():
         assert soul_book[0]["weight"] == 5, ver
         # random_sequence preserved
         assert t["random_sequence"] == "minecraft:gameplay/piglin_bartering", ver
+
+
+@pytest.mark.parametrize(
+    "version",
+    [
+        "1.21.6",
+        "1.21.8",
+        "1.21.10",
+        "1.21.11",
+        "26.1.2",
+        "26.2",
+    ],
+)
+def test_builds_for_all_supported_versions(version):
+    files = _build_files(version)
+    required = [
+        "pack.mcmeta",
+        "data/spirit_flight/enchantment/spirit_flight.json",
+        "data/spirit_flight/tags/item/harnesses_enchantable.json",
+        "data/spirit_flight/tags/enchantment/spirit_flight.json",
+        "data/spirit_flight/loot_table/book_1_5.json",
+        "data/spirit_flight/loot_table/harness_1_5.json",
+        "data/minecraft/loot_table/chests/bastion_bridge.json",
+        "data/minecraft/loot_table/chests/bastion_hoglin_stable.json",
+        "data/minecraft/loot_table/chests/bastion_other.json",
+        "data/minecraft/loot_table/chests/bastion_treasure.json",
+        "data/minecraft/loot_table/gameplay/piglin_bartering.json",
+    ]
+    for r in required:
+        assert r in files, (version, r)
+    for path, content in files.items():
+        if path.endswith(".json"):
+            json.loads(content)
