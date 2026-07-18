@@ -77,7 +77,9 @@ def main() -> None:
         print(f"  {rel}")
 
     if args.zip:
-        zip_path = out.parent / pack_zip_name(pack.name, target.pack_format)
+        zip_path = out.parent / pack_zip_name(
+            pack.name, target.pack_format, version=target.version
+        )
         zip_pack(zip_path, files)
         print(f"Zipped -> {zip_path}")
 

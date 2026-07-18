@@ -99,6 +99,22 @@ ENCHANTED_COUNT_INCREASE_FORMAT = (
 )
 NEW_META_FORMAT = 82  # 1.21.9: pack_format -> min_format/max_format
 
+# Pack formats that span a content-era boundary within a single format tuple.
+# When a release pair is in this map, vanilla loot tables (and other data
+# shapes) differ on either side of the boundary even though pack_format is the
+# same. Loosely: building for releases before the boundary produces output that
+# doesn't work on releases after, and vice versa. resolve_target refuses to
+# silently pick one when called with only `-f` for these formats; pack_zip_name
+# caps the supported-version range at the boundary the resolved version lives
+# on.
+#
+# Verified key: pack_format (4, 0) covers 1.13-1.14.4, but the loot-table shape
+# switched between 1.13.2 and 1.14 (unprefixed id strings, integer counts, no
+# root `type` -> namespaced ids, float counts, root `type: minecraft:entity`).
+AMBIGUOUS_FORMAT_BOUNDARIES: dict[tuple[int, int], tuple[str, str]] = {
+    (4, 0): ("1.13.2", "1.14"),
+}
+
 
 @dataclass(frozen=True)
 class Target:
@@ -129,10 +145,10 @@ class Pack:
 def resolve_target(version: str | None, fmt: str | None) -> Target:
     """Resolve a build target from a version string or an explicit pack format.
 
-    If `fmt` is given, the version defaults to the latest release sharing that
-    pack_format (so `-f 4` resolves to 1.14.4, the last format-4 release). This
-    matters because some pack_format numbers span releases with differing
-    loot-table content conventions (e.g. format 4 = both 1.13 and 1.14).
+    If `fmt` is given alone, the version defaults to the latest release sharing
+    that pack_format — UNLESS the format is in AMBIGUOUS_FORMAT_BOUNDARIES, in
+    which case the format spans a content-era break and resolve_target refuses
+    to silently pick one. Pass `-v` to disambiguate.
     """
     if fmt is not None:
         parsed = _parse_format(fmt)
@@ -141,18 +157,59 @@ def resolve_target(version: str | None, fmt: str | None) -> Target:
                 f"Datapack format {fmt} is not supported "
                 f"(minimum is {MIN_SUPPORTED_FORMAT[0]}).",
             )
-        resolved = _latest_version_for_format(parsed)
-        if resolved is None:
+        if version is None and parsed in AMBIGUOUS_FORMAT_BOUNDARIES:
+            last_before, first_after = AMBIGUOUS_FORMAT_BOUNDARIES[parsed]
             raise ValueError(
-                f"No known Minecraft release uses pack format {fmt}.",
+                f"pack_format {parsed[0]} spans a content-era boundary "
+                f"(between {last_before} and {first_after}); "
+                f"vanilla loot tables differ on either side. "
+                f"Specify a Java Edition version with -v to choose "
+                f"which era to target (e.g. -v {last_before} or -v {first_after})."
             )
-        return Target(version=resolved, pack_format=parsed)
+        if version is None:
+            resolved = _latest_version_for_format(parsed)
+            if resolved is None:
+                raise ValueError(
+                    f"No known Minecraft release uses pack format {fmt}.",
+                )
+            return Target(version=resolved, pack_format=parsed)
+        # Both -v and -f supplied: trust the version's content era, but check
+        # that its pack_format agrees with -f.
+        if version not in PACK_FORMATS:
+            known = ", ".join(sorted(PACK_FORMATS, key=_version_sort_key, reverse=True))
+            raise ValueError(f"Unknown version {version!r}. Known: {known}")
+        actual = PACK_FORMATS[version]
+        if actual != parsed:
+            raise ValueError(
+                f"Java Edition {version} uses pack format "
+                f"{actual[0]}" + (f".{actual[1]}" if actual[1] else "") + f", "
+                f"not {fmt}."
+            )
+        return Target(version=version, pack_format=parsed)
 
     version = LATEST_VERSION if version is None else version
     if version not in PACK_FORMATS:
         known = ", ".join(sorted(PACK_FORMATS, key=_version_sort_key, reverse=True))
         raise ValueError(f"Unknown version {version!r}. Known: {known}")
     return Target(version=version, pack_format=PACK_FORMATS[version])
+
+
+def _era_versions(version: str, fmt: tuple[int, int]) -> list[str]:
+    """All Java Edition versions sharing `fmt` that are on the same content-era
+    side as `version`. For non-ambiguous formats this is the full list; for
+    ambiguous formats it's the era subset bounded by the boundary release.
+    """
+    all_versions = versions_for_format(fmt)
+    if fmt not in AMBIGUOUS_FORMAT_BOUNDARIES:
+        return all_versions
+    last_before, _first_after = AMBIGUOUS_FORMAT_BOUNDARIES[fmt]
+    boundary_key = _version_sort_key(last_before)
+    version_key = _version_sort_key(version)
+    return [
+        v
+        for v in all_versions
+        if (_version_sort_key(v) <= boundary_key) == (version_key <= boundary_key)
+    ]
 
 
 def _latest_version_for_format(fmt: tuple[int, int]) -> str | None:
@@ -266,18 +323,25 @@ def pack_zip_name(
     pack_name: str,
     fmt: tuple[int, int],
     *,
+    version: str | None = None,
     project_version: str | None = None,
 ) -> str:
     """Standard distributable zip name: <pack-name>_<proj-ver>+mc<range>.zip.
 
     `<range>` is the earliest-to-latest Java Edition version range sharing the
-    target's pack_format tuple. If only one version maps to the format, the
-    range collapses to that single version (no `-` separator).
+    target's pack_format tuple, EXCEPT capped at content-era boundaries (see
+    AMBIGUOUS_FORMAT_BOUNDARIES) when `version` is supplied. For non-ambiguous
+    formats or when `version` is None, the range spans the full set of releases
+    sharing `fmt` (mirroring original behavior). When `version` is supplied and
+    `fmt` is ambiguous, the range reflects only the era `version` lives on.
 
     Pass `project_version` explicitly in tests for determinism; production
     callers leave it None to use the installed package's version.
     """
-    versions = versions_for_format(fmt)
+    if version is None:
+        versions = versions_for_format(fmt)
+    else:
+        versions = _era_versions(version, fmt)
     if not versions:
         raise ValueError(f"no known Java Edition versions use pack format {fmt}")
     range_str = versions[0] if len(versions) == 1 else f"{versions[0]}-{versions[-1]}"
