@@ -74,7 +74,7 @@ def _enchantment_json() -> dict[str, Any]:
                     "operation": "add_value",
                 }
             ]
-        }
+        },
     }
 
 
@@ -160,13 +160,13 @@ def _spirit_flight_pool() -> dict[str, Any]:
         "entries": [
             {"type": "minecraft:empty", "weight": 21},
             {
-                "type": "minecraft:reference",
-                "name": "spirit_flight:book_1_5",
+                "type": "minecraft:loot_table",
+                "value": "spirit_flight:book_1_5",
                 "weight": 6,
             },
             {
-                "type": "minecraft:reference",
-                "name": "spirit_flight:harness_1_5",
+                "type": "minecraft:loot_table",
+                "value": "spirit_flight:harness_1_5",
                 "weight": 6,
             },
         ],
@@ -197,8 +197,8 @@ def _barter_book_entry(level: int) -> dict[str, Any]:
 
 def _barter_harness_reference() -> dict[str, Any]:
     return {
-        "type": "minecraft:reference",
-        "name": "spirit_flight:harness_1_5",
+        "type": "minecraft:loot_table",
+        "value": "spirit_flight:harness_1_5",
         "weight": 5,
     }
 
