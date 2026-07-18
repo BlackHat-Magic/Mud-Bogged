@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
 
 from ..common import Pack, Target, json_dumps, pack_mcmeta, pack_png
@@ -43,6 +45,14 @@ HARNESS_COLORS = (
     "red",
     "black",
 )
+
+_STATIC = Path(__file__).parent / "static"
+_VANILLA_BASE = _STATIC / "vanilla"
+
+
+def _vanilla_dir(fmt: tuple[int, int]) -> str:
+    """Directory under static/vanilla/ for the given format."""
+    return str(fmt[0]) if fmt[1] == 0 else f"{fmt[0]}_{fmt[1]}"
 
 
 def _enchantment_json() -> dict[str, Any]:
@@ -140,6 +150,42 @@ def _harness_1_5_table() -> dict[str, Any]:
     }
 
 
+_BASTION_CHESTS = (
+    "chests/bastion_bridge",
+    "chests/bastion_hoglin_stable",
+    "chests/bastion_other",
+    "chests/bastion_treasure",
+)
+
+
+def _spirit_flight_pool() -> dict[str, Any]:
+    return {
+        "rolls": 1.0,
+        "bonus_rolls": 0.0,
+        "entries": [
+            {"type": "minecraft:empty", "weight": 21},
+            {
+                "type": "minecraft:reference",
+                "name": "spirit_flight:book_1_5",
+                "weight": 6,
+            },
+            {
+                "type": "minecraft:reference",
+                "name": "spirit_flight:harness_1_5",
+                "weight": 6,
+            },
+        ],
+    }
+
+
+def _merge_bastion_chest(fmt: tuple[int, int], chest_path: str) -> dict[str, Any]:
+    """Load the embedded vanilla chest table for this format and append our pool."""
+    p = _VANILLA_BASE / _vanilla_dir(fmt) / f"{chest_path}.json"
+    table = json.loads(p.read_text())
+    table["pools"].append(_spirit_flight_pool())
+    return table
+
+
 def build(target: Target) -> dict[str, str | bytes]:
     fmt = target.pack_format
     if fmt < MIN_FORMAT:
@@ -168,6 +214,11 @@ def build(target: Target) -> dict[str, str | bytes]:
     icon = pack_png(PACK.name)
     if icon is not None:
         files["pack.png"] = icon
+
+    for chest in _BASTION_CHESTS:
+        files[f"data/minecraft/loot_table/{chest}.json"] = json_dumps(
+            _merge_bastion_chest(fmt, chest)
+        )
 
     return files
 

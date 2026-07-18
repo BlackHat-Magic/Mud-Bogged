@@ -122,3 +122,45 @@ def test_harness_subtable_each_color_has_all_5_levels():
         seen[color].add(lvl)
     for color, levels in seen.items():
         assert levels == {1, 2, 3, 4, 5}, color
+
+
+def test_bastion_chest_tables_have_extra_spirit_flight_pool():
+    for ver in ("1.21.6", "1.21.11", "26.2"):
+        files = _build_files(ver)
+        for chest in (
+            "bastion_bridge",
+            "bastion_hoglin_stable",
+            "bastion_other",
+            "bastion_treasure",
+        ):
+            path = f"data/minecraft/loot_table/chests/{chest}.json"
+            assert path in files, (ver, chest)
+            t = json.loads(files[path])
+            # The new pool is last, with the three expected entries
+            new_pool = t["pools"][-1]
+            entries = new_pool["entries"]
+            assert len(entries) == 3
+            assert entries[0] == {"type": "minecraft:empty", "weight": 21}
+            assert entries[1] == {
+                "type": "minecraft:reference",
+                "name": "spirit_flight:book_1_5",
+                "weight": 6,
+            }
+            assert entries[2] == {
+                "type": "minecraft:reference",
+                "name": "spirit_flight:harness_1_5",
+                "weight": 6,
+            }
+
+
+def test_bastion_chest_original_pools_preserved():
+    """All vanilla pools before the new one are preserved untouched."""
+    for ver in ("1.21.6", "26.2"):
+        files = _build_files(ver)
+        out = json.loads(files["data/minecraft/loot_table/chests/bastion_bridge.json"])
+        # vanilla bastion_bridge has 5 pools; we add 1 -> 6
+        assert len(out["pools"]) == 6
+        # random_sequence preserved
+        assert out["random_sequence"] == "minecraft:chests/bastion_bridge"
+        # type preserved
+        assert out["type"] == "minecraft:chest"
