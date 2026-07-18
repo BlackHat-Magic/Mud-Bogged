@@ -262,3 +262,19 @@ def test_builds_for_all_supported_versions(version):
     for path, content in files.items():
         if path.endswith(".json"):
             json.loads(content)
+
+
+def test_other_packs_still_build():
+    """Adding Spirit Flight must not break the existing three packs."""
+    for name, ver in [
+        ("bogged-drop-mud", "1.21.1"),
+        ("husk-drop-sand", "1.13.2"),
+        ("stray-drop-ice", "1.21.11"),
+    ]:
+        p = PACKS[name]
+        t = resolve_target(ver, None)
+        files = p.build(t)
+        assert "pack.mcmeta" in files, name
+        for path, content in files.items():
+            if path.endswith(".json"):
+                json.loads(content)
