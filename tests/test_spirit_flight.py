@@ -289,3 +289,12 @@ def test_other_packs_still_build():
         for path, content in files.items():
             if path.endswith(".json"):
                 json.loads(content)
+
+
+def test_pack_icon_present():
+    """Spirit Flight ships a pack.png icon alongside its built files."""
+    files = _build_files("1.21.6")
+    assert "pack.png" in files
+    assert isinstance(files["pack.png"], bytes)
+    # PNG magic header
+    assert files["pack.png"][:8] == b"\x89PNG\r\n\x1a\n"
