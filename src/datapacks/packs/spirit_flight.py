@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import Any
 
-from ..common import Pack, Target, pack_mcmeta, pack_png
+from ..common import Pack, Target, json_dumps, pack_mcmeta, pack_png
 
 DESCRIPTION = "Spirit Flight — happy ghast harness enchantment"
 
@@ -19,7 +19,70 @@ MIN_FORMAT: tuple[int, int] = (80, 0)
 SPEED_PER_LEVEL = 0.0457
 VANILLA_FLYING_SPEED = 0.05
 
-_STATIC = Path(__file__).parent / "static"
+# Enchantment constants. See spec for rationale.
+ENCHANTMENT_NAMESPACE = "spirit_flight"
+ENCHANTMENT_ID = f"{ENCHANTMENT_NAMESPACE}:spirit_flight"
+
+HARNESS_COLORS = (
+    "white",
+    "orange",
+    "magenta",
+    "light_blue",
+    "yellow",
+    "lime",
+    "pink",
+    "gray",
+    "light_gray",
+    "cyan",
+    "purple",
+    "blue",
+    "brown",
+    "green",
+    "red",
+    "black",
+)
+
+
+def _enchantment_json() -> dict[str, Any]:
+    return {
+        "description": "Spirit Flight",
+        "supported_items": "#spirit_flight:harnesses",
+        "primary_items": "#spirit_flight:harnesses",
+        "weight": 2,
+        "max_level": 5,
+        "min_cost": {"base": 15, "per_level_above_first": 10},
+        "max_cost": {"base": 40, "per_level_above_first": 10},
+        "anvil_cost": 4,
+        "slots": ["body"],
+        "effects": {
+            "minecraft:attributes": [
+                {
+                    "id": "spirit_flight:spirit_flight",
+                    "attribute": "minecraft:flying_speed",
+                    "amount": {
+                        "type": "minecraft:linear",
+                        "base": SPEED_PER_LEVEL,
+                        "per_level_above_first": SPEED_PER_LEVEL,
+                    },
+                    "operation": "add_value",
+                }
+            ]
+        },
+    }
+
+
+def _harnesses_item_tag() -> dict[str, Any]:
+    return {
+        "replace": False,
+        "values": ["#minecraft:harnesses"],
+    }
+
+
+def _enchantment_tag() -> dict[str, Any]:
+    return {
+        "replace": False,
+        "values": ["spirit_flight:spirit_flight"],
+    }
 
 
 def build(target: Target) -> dict[str, str | bytes]:
@@ -32,6 +95,15 @@ def build(target: Target) -> dict[str, str | bytes]:
 
     files: dict[str, str | bytes] = {
         "pack.mcmeta": pack_mcmeta(fmt, DESCRIPTION),
+        "data/spirit_flight/enchantment/spirit_flight.json": json_dumps(
+            _enchantment_json()
+        ),
+        "data/spirit_flight/tags/item/harnesses_enchantable.json": json_dumps(
+            _harnesses_item_tag()
+        ),
+        "data/spirit_flight/tags/enchantment/spirit_flight.json": json_dumps(
+            _enchantment_tag()
+        ),
     }
 
     icon = pack_png(PACK.name)
