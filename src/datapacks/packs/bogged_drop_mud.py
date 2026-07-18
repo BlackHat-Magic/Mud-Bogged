@@ -1,4 +1,4 @@
-"""Bogged-Drop-Mud: make the Bogged drop 0-2 Mud."""
+"""Bogged-Drop-Mud: make the Bogged drop Mud or Moss, plus rare swamp drops."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from ..common import (
     pack_png,
 )
 
-DESCRIPTION = "Make the Bogged drop Mud (0-2)"
+DESCRIPTION = "Make the Bogged drop Mud/Moss Blocks (0-2) plus rare swamp drops"
 
 # The Bogged was introduced in 1.21 (pack format 48), so this pack cannot be
 # built for anything older.
@@ -60,6 +60,77 @@ def _item_pool(
     return pool
 
 
+def _weighted_item_pool(
+    items: list[str],
+    *,
+    looting: str,
+    min_count: float,
+    max_count: float,
+    looting_max: float,
+) -> dict[str, Any]:
+    """A pool with multiple equally-weighted item entries that share the same
+    set_count/looting function shape. Each roll picks ONE of the items
+    (weighted random across entries) so the count distribution stays per-item.
+    """
+    entries: list[dict[str, Any]] = []
+    for item in items:
+        functions: list[dict[str, Any]] = [
+            {
+                "function": "minecraft:set_count",
+                "count": {
+                    "type": "minecraft:uniform",
+                    "min": min_count,
+                    "max": max_count,
+                },
+                "add": False,
+            },
+            {
+                "function": looting,
+                "enchantment": "minecraft:looting",
+                "count": {"type": "minecraft:uniform", "min": 0.0, "max": looting_max},
+            },
+        ]
+        entries.append(
+            {
+                "type": "minecraft:item",
+                "name": item,
+                "weight": 1,
+                "functions": functions,
+            }
+        )
+    return {"rolls": 1.0, "bonus_rolls": 0.0, "entries": entries}
+
+
+def _rare_drop_pool() -> dict[str, Any]:
+    """Rare-drop pool gated by killed_by_player + a Looting-scaled chance.
+    Mirrors vanilla's zombie/husk rare-drop condition shape; entries are
+    plain items with no set_count (one stack of one item)."""
+    return {
+        "rolls": 1.0,
+        "bonus_rolls": 0.0,
+        "conditions": [
+            {"condition": "minecraft:killed_by_player"},
+            {
+                "condition": "minecraft:random_chance_with_enchanted_bonus",
+                "unenchanted_chance": 0.025,
+                "enchanted_chance": {
+                    "type": "minecraft:linear",
+                    "base": 0.035,
+                    "per_level_above_first": 0.01,
+                },
+                "enchantment": "minecraft:looting",
+            },
+        ],
+        "entries": [
+            {"type": "minecraft:item", "name": "minecraft:red_mushroom"},
+            {"type": "minecraft:item", "name": "minecraft:brown_mushroom"},
+            {"type": "minecraft:item", "name": "minecraft:glow_berries"},
+            {"type": "minecraft:item", "name": "minecraft:azalea"},
+            {"type": "minecraft:item", "name": "minecraft:flowering_azalea"},
+        ],
+    }
+
+
 def _loot_table(fmt: tuple[int, int]) -> dict[str, Any]:
     looting = looting_function(fmt)
     return {
@@ -79,8 +150,8 @@ def _loot_table(fmt: tuple[int, int]) -> dict[str, Any]:
                 max_count=2.0,
                 looting_max=1.0,
             ),
-            _item_pool(
-                "minecraft:mud",
+            _weighted_item_pool(
+                ["minecraft:mud", "minecraft:moss_block"],
                 looting=looting,
                 min_count=0.0,
                 max_count=2.0,
@@ -98,6 +169,7 @@ def _loot_table(fmt: tuple[int, int]) -> dict[str, Any]:
                     {"function": "minecraft:set_potion", "id": "minecraft:poison"}
                 ],
             ),
+            _rare_drop_pool(),
         ],
         "random_sequence": "minecraft:entities/bogged",
     }
