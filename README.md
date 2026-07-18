@@ -21,15 +21,10 @@ Small datapacks to modify the vanilla play experience.
 ## Quickstart
 
 ```sh
-# build the pack
-uv run datapacks bogged-drop-mud -f 48
+# build the pack (and its distributable zip)
+uv run datapacks bogged-drop-mud -f 48 -z
 
-# create the zip file
-cd Bogged-Drop-Mud
-zip --recurse-paths ../Bogged-Drop-Mud.zip .
-
-# put in your datapack folder
-cd ..
-mv Bogged-Drop-Mud.zip ~/.local/share/PrismLauncher/instances/1.21.1/minecraft/saves/"New World"/datapacks/
+# put the zip in your datapack folder
+mv bogged-drop-mud_0.1.0+mc1.21-1.21.1.zip ~/.local/share/PrismLauncher/instances/1.21.1/minecraft/saves/"New World"/datapacks/
 ```
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .common import resolve_target, write_pack
+from .common import pack_zip_name, resolve_target, write_pack, zip_pack
 from .packs import PACKS
 
 
@@ -37,6 +37,17 @@ def main() -> None:
             "Output directory (default: ./<pack-display-name>, e.g. ./Bogged-Drop-Mud)."
         ),
     )
+    parser.add_argument(
+        "-z",
+        "--zip",
+        action="store_true",
+        help=(
+            "After building, also zip the pack to "
+            "<pack-name>_<project-ver>+mc<supported-version-range>.zip "
+            "(e.g. bogged-drop-mud_0.1.0+mc26.1-26.1.2.zip) "
+            "in the parent of the output directory."
+        ),
+    )
     args = parser.parse_args()
 
     pack = PACKS[args.pack]
@@ -64,6 +75,11 @@ def main() -> None:
     print(f"Built {pack.display_name} for {target.version} (format {fmt_str}) -> {out}")
     for rel in sorted(files):
         print(f"  {rel}")
+
+    if args.zip:
+        zip_path = out.parent / pack_zip_name(pack.name, target.pack_format)
+        zip_pack(zip_path, files)
+        print(f"Zipped -> {zip_path}")
 
 
 if __name__ == "__main__":

@@ -237,3 +237,72 @@ def write_pack(out: Path, files: dict[str, str | bytes]) -> None:
             path.write_bytes(content)
         else:
             path.write_text(content, encoding="utf-8")
+
+
+def versions_for_format(fmt: tuple[int, int]) -> list[str]:
+    """All Java Edition release versions sharing the given pack format tuple,
+    ordered earliest to latest."""
+    return sorted(
+        (v for v, pf in PACK_FORMATS.items() if pf == fmt),
+        key=_version_sort_key,
+    )
+
+
+def _project_version() -> str:
+    """The datapacks project's own version, from package metadata or pyproject.toml."""
+    try:
+        from importlib.metadata import version
+
+        return version("datapacks")
+    except Exception:
+        import tomllib
+
+        p = Path(__file__).resolve().parents[2] / "pyproject.toml"
+        with p.open("rb") as f:
+            return tomllib.load(f)["project"]["version"]
+
+
+def pack_zip_name(
+    pack_name: str,
+    fmt: tuple[int, int],
+    *,
+    project_version: str | None = None,
+) -> str:
+    """Standard distributable zip name: <pack-name>_<proj-ver>+mc<range>.zip.
+
+    `<range>` is the earliest-to-latest Java Edition version range sharing the
+    target's pack_format tuple. If only one version maps to the format, the
+    range collapses to that single version (no `-` separator).
+
+    Pass `project_version` explicitly in tests for determinism; production
+    callers leave it None to use the installed package's version.
+    """
+    versions = versions_for_format(fmt)
+    if not versions:
+        raise ValueError(f"no known Java Edition versions use pack format {fmt}")
+    range_str = versions[0] if len(versions) == 1 else f"{versions[0]}-{versions[-1]}"
+    if project_version is None:
+        project_version = _project_version()
+    return f"{pack_name}_{project_version}+mc{range_str}.zip"
+
+
+def zip_pack(zip_path: Path, files: dict[str, str | bytes]) -> None:
+    """Write a generated pack's files to a zip archive at `zip_path`.
+
+    Overwrites any existing file at that path. Zips from the in-memory files
+    dict, not the on-disk output, so contents are byte-identical to what
+    `write_pack` would emit. Uses a fixed date_time (1980-01-01) on every
+    entry so the zip is byte-reproducible given the same input.
+    """
+    import zipfile
+
+    if zip_path.exists():
+        zip_path.unlink()
+    zip_path.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+        for rel in sorted(files):
+            content = files[rel]
+            data = content.encode("utf-8") if isinstance(content, str) else content
+            zi = zipfile.ZipInfo(rel, date_time=(1980, 1, 1, 0, 0, 0))
+            zi.compress_type = zipfile.ZIP_DEFLATED
+            z.writestr(zi, data)
