@@ -1,34 +1,35 @@
 <div align="center">
 
-# Loot Table Datapacks
+# Datapacks
 
-Simple loot table tweak datapacks
+Generates Minecraft datapacks for a chosen version.
 
 </div>
 
 
 ## Overview
 
-Maked the bogged drop mud, husks drop sand, etc.
+Small datapacks to modify the vanilla play experience.
 
 ### Features
 
 - [x] Bogged drop mud
 - [x] Husks drop sand
 - [x] Strays drop ice
+- [ ] "Spirit Flight" Happy Ghast Harness Enchantment
 
 ## Quickstart
 
 ```sh
 # build the pack
-uv run loot-table-datapacks bogged-drop-mud -f 48
+uv run datapacks bogged-drop-mud -f 48
 
 # create the zip file
 cd Bogged-Drop-Mud
-zip --recurse-paths ../"Bogged Drop Mud.zip" .
+zip --recurse-paths ../Bogged-Drop-Mud.zip .
 
 # put in your datapack folder
 cd ..
-mv "Bogged Drop Mud.zip" ~/.local/share/PrismLauncher/instances/1.21.1/minecraft/saves/"New World"/datapacks/
+mv Bogged-Drop-Mud.zip ~/.local/share/PrismLauncher/instances/1.21.1/minecraft/saves/"New World"/datapacks/
 ```
 
