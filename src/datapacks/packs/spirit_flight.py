@@ -186,6 +186,40 @@ def _merge_bastion_chest(fmt: tuple[int, int], chest_path: str) -> dict[str, Any
     return table
 
 
+def _barter_book_entry(level: int) -> dict[str, Any]:
+    return {
+        "type": "minecraft:item",
+        "name": "minecraft:book",
+        "weight": 1,
+        "functions": [
+            {
+                "function": "minecraft:set_enchantments",
+                "enchantments": {ENCHANTMENT_ID: level},
+            }
+        ],
+    }
+
+
+def _barter_harness_reference() -> dict[str, Any]:
+    return {
+        "type": "minecraft:reference",
+        "name": "spirit_flight:harness_1_5",
+        "weight": 5,
+    }
+
+
+def _merge_piglin_bartering(fmt: tuple[int, int]) -> dict[str, Any]:
+    """Load the embedded vanilla piglin_bartering table and add our entries."""
+    p = _VANILLA_BASE / _vanilla_dir(fmt) / "gameplay/piglin_bartering.json"
+    table = json.loads(p.read_text())
+    pool = table["pools"][0]
+    pool["entries"].extend(
+        [_barter_book_entry(i) for i in range(1, MAX_ENCHANTMENT_LEVEL + 1)]
+        + [_barter_harness_reference()]
+    )
+    return table
+
+
 def build(target: Target) -> dict[str, str | bytes]:
     fmt = target.pack_format
     if fmt < MIN_FORMAT:
@@ -219,6 +253,10 @@ def build(target: Target) -> dict[str, str | bytes]:
         files[f"data/minecraft/loot_table/{chest}.json"] = json_dumps(
             _merge_bastion_chest(fmt, chest)
         )
+
+    files["data/minecraft/loot_table/gameplay/piglin_bartering.json"] = json_dumps(
+        _merge_piglin_bartering(fmt)
+    )
 
     return files
 

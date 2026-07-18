@@ -164,3 +164,58 @@ def test_bastion_chest_original_pools_preserved():
         assert out["random_sequence"] == "minecraft:chests/bastion_bridge"
         # type preserved
         assert out["type"] == "minecraft:chest"
+
+
+def test_piglin_bartering_has_spirit_flight_entries():
+    for ver in ("1.21.6", "1.21.11", "26.2"):
+        files = _build_files(ver)
+        path = "data/minecraft/loot_table/gameplay/piglin_bartering.json"
+        assert path in files, ver
+        t = json.loads(files[path])
+        assert t["type"] == "minecraft:barter"
+        entries = t["pools"][0]["entries"]
+        # The 5 book entries (one per level) with weight 1 each
+        book_entries = [
+            e
+            for e in entries
+            if e.get("name") == "minecraft:book"
+            and any(
+                fn.get("function") == "minecraft:set_enchantments"
+                and fn["enchantments"].get("spirit_flight:spirit_flight")
+                in (1, 2, 3, 4, 5)
+                for fn in e.get("functions", [])
+            )
+        ]
+        assert len(book_entries) == 5
+        for e in book_entries:
+            assert e["weight"] == 1
+        # The 1 reference entry to spirit_flight:harness_1_5 with weight 5
+        ref_entries = [
+            e
+            for e in entries
+            if e.get("type") == "minecraft:reference"
+            and e.get("name") == "spirit_flight:harness_1_5"
+        ]
+        assert len(ref_entries) == 1
+        assert ref_entries[0]["weight"] == 5
+
+
+def test_piglin_bartering_vanilla_entries_preserved():
+    files = _build_files("1.21.6")
+    t = json.loads(files["data/minecraft/loot_table/gameplay/piglin_bartering.json"])
+    entries = t["pools"][0]["entries"]
+    # Soul Speed book at weight 5 must still be present
+    soul_book = [
+        e
+        for e in entries
+        if e.get("name") == "minecraft:book"
+        and any(
+            fn.get("function") == "minecraft:enchant_randomly"
+            and fn.get("options") == "minecraft:soul_speed"
+            for fn in e.get("functions", [])
+        )
+    ]
+    assert len(soul_book) == 1
+    assert soul_book[0]["weight"] == 5
+    # random_sequence preserved
+    assert t["random_sequence"] == "minecraft:gameplay/piglin_bartering"
