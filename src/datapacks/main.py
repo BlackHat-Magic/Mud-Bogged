@@ -9,7 +9,7 @@ from .packs import PACKS
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        prog="loot-table-datapacks",
+        prog="datapacks",
         description="Build loot-table-tweak datapacks for a given Minecraft version.",
     )
     parser.add_argument(
