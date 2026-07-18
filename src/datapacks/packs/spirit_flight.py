@@ -81,7 +81,7 @@ def _harnesses_item_tag() -> dict[str, Any]:
 def _enchantment_tag() -> dict[str, Any]:
     return {
         "replace": False,
-        "values": ["spirit_flight:spirit_flight"],
+        "values": [ENCHANTMENT_ID],
     }
 
 

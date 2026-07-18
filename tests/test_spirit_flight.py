@@ -50,6 +50,7 @@ def test_enchantment_file_present():
 def test_enchantment_has_flying_speed_attribute_effect():
     files = _build_files("1.21.6")
     e = json.loads(files["data/spirit_flight/enchantment/spirit_flight.json"])
+    assert set(e["effects"]) == {"minecraft:attributes"}
     attrs = e["effects"]["minecraft:attributes"]
     assert len(attrs) == 1
     a = attrs[0]
@@ -65,11 +66,11 @@ def test_harnesses_item_tag_present():
     assert "data/spirit_flight/tags/item/harnesses_enchantable.json" in files
     t = json.loads(files["data/spirit_flight/tags/item/harnesses_enchantable.json"])
     assert "replace" in t and t["replace"] is False
-    assert "#minecraft:harnesses" in t["values"]
+    assert t["values"] == ["#minecraft:harnesses"]
 
 
 def test_enchantment_tag_present():
     files = _build_files("1.21.6")
     assert "data/spirit_flight/tags/enchantment/spirit_flight.json" in files
     t = json.loads(files["data/spirit_flight/tags/enchantment/spirit_flight.json"])
-    assert "spirit_flight:spirit_flight" in t["values"]
+    assert t["values"] == [sf.ENCHANTMENT_ID]
