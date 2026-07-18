@@ -194,15 +194,18 @@ def _split_quantity_pool(v: tuple[int, ...], items: tuple[str, ...]) -> dict[str
 
 def _desert_rare_drop_pool(v: tuple[int, ...]) -> dict[str, Any]:
     """Rare desert drops gated by killed_by_player + a Looting-scaled chance.
-    One stack of one of: dead_bush, cactus, or sugar_cane (desert plants).
-    All three items exist since 1.13, so this pool emits for every supported
-    target version.
+    One stack of one of: dead_bush, cactus, sugar_cane (desert plants, all
+    existing since 1.13), plus cactus_flower from 1.21.5 onward (added in
+    snapshot 25w06a). The cactus_flower entry is era-gated so earlier target
+    versions don't reference a non-existent item.
     """
     item_names = (
         "minecraft:dead_bush",
         "minecraft:cactus",
         "minecraft:sugar_cane",
     )
+    if v >= (1, 21, 5):
+        item_names = (*item_names, "minecraft:cactus_flower")
     pool = _rolls(v)
     pool["conditions"] = [
         {"condition": _ns(v, "minecraft:killed_by_player")},
