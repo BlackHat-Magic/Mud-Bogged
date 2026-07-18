@@ -1,4 +1,4 @@
-"""Husk-Drop-Sand: make the Husk drop 0-2 Sand."""
+"""Husk-Drop-Sand: make the Husk drop Sand/Red Sand, plus rare desert drops."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from typing import Any
 
 from ..common import Pack, Target, json_dumps, loot_table_dir, pack_mcmeta, pack_png
 
-DESCRIPTION = "Make the Husk drop Sand (0-2)"
+DESCRIPTION = "Make the Husk drop Sand/Red Sand (0-2) plus rare desert drops"
 
 # The Husk has existed since 1.10 and datapacks since 1.13, so this pack can be
 # built all the way back to format 4 (1.13).
@@ -23,9 +23,18 @@ MIN_FORMAT: tuple[int, int] = (4, 0)
 # happen to align with a pack_format boundary, but resolving from the version
 # string keeps the reasoning uniform and correct.
 #
+# NOTE: the Husk's looting_enchant -> enchanted_count_increase transition
+# (and random_chance_with_looting -> random_chance_with_enchanted_bonus) is
+# at 1.21, NOT at 1.20.5 like the general pack_format-27 policy. Vanilla
+# shipped the husk table unchanged in loot-table-content shape through
+# 1.20.5/1.20.6 and only regenerated it at 1.21 (verified against the actual
+# vanilla 1.20.5 husk table, which still uses looting_enchant +
+# random_chance_with_looting, and the 1.21 husk table, which uses the new
+# forms). The same pattern applies to the Stray.
+#
 # Verified against vanilla husk loot tables fetched per release: 1.13.2,
-# 1.14.4, 1.16.5, 1.17.1, 1.18.1, 1.18.2, 1.19.4, 1.20.1, 1.20.5, 1.21,
-# 1.21.1, 1.21.9, 1.21.11.
+# 1.14.4, 1.16.5, 1.17.1, 1.18.1, 1.18.2, 1.19.4, 1.20.1, 1.20.5, 1.20.6,
+# 1.21, 1.21.1, 1.21.9, 1.21.11.
 # --------------------------------------------------------------------------- #
 
 
@@ -59,8 +68,12 @@ def _has_random_sequence(v: tuple[int, ...]) -> bool:
 
 
 def _new_looting(v: tuple[int, ...]) -> bool:
-    """1.20.5+ use enchanted_count_increase + an enchantment field."""
-    return v >= (1, 20, 5)
+    """Husk switched to enchanted_count_increase + an enchantment field at 1.21,
+    NOT at 1.20.5 like the general pack_format-27 policy. Vanilla did not
+    regenerate the husk table at 1.20.5/1.20.6 and kept looting_enchant /
+    random_chance_with_looting there. Same pattern as the Stray.
+    """
+    return v >= (1, 21)
 
 
 def _any_of_smelt(v: tuple[int, ...]) -> bool:
@@ -112,8 +125,8 @@ def _rolls(v: tuple[int, ...]) -> dict[str, Any]:
 def _quantity_pool(v: tuple[int, ...], item: str) -> dict[str, Any]:
     """A single-item pool: set_count 0-2 plus a Looting bonus 0-1.
 
-    Used for both the rotten_flesh pool and the added sand pool, so the sand
-    drop mirrors the era's own conventions exactly.
+    Used for the rotten_flesh pool and the split sand/red_sand entries, so
+    each drop mirrors the era's own conventions exactly.
     """
     set_count: dict[str, Any] = {
         "function": _ns(v, "minecraft:set_count"),
@@ -139,6 +152,69 @@ def _quantity_pool(v: tuple[int, ...], item: str) -> dict[str, Any]:
 
     pool = _rolls(v)
     pool["entries"] = [entry]
+    return pool
+
+
+def _split_quantity_pool(v: tuple[int, ...], items: tuple[str, ...]) -> dict[str, Any]:
+    """A pool with multiple equally-weighted item entries that share the same
+    set_count/looting function shape. Each roll picks ONE of the items
+    (weighted random across entries) so each kill drops one of the choices
+    with a 0-2 count and a Looting bonus. Used for the sand/red_sand random
+    choice.
+    """
+    set_count: dict[str, Any] = {
+        "function": _ns(v, "minecraft:set_count"),
+        "count": _count(v, 0, 2, typed=True),
+    }
+    if _modern_pool(v):
+        set_count["add"] = False
+
+    looting: dict[str, Any] = {
+        "function": _looting_fn(v),
+        "count": _count(v, 0, 1, typed=_modern_pool(v)),
+    }
+    if _new_looting(v):
+        looting["enchantment"] = "minecraft:looting"
+
+    entries: list[dict[str, Any]] = []
+    for item in items:
+        entry: dict[str, Any] = {
+            "type": _ns(v, "minecraft:item"),
+            "name": item,
+            "functions": [set_count, looting],
+        }
+        if v < (1, 14):
+            entry["weight"] = 1
+        entries.append(entry)
+
+    pool = _rolls(v)
+    pool["entries"] = entries
+    return pool
+
+
+def _desert_rare_drop_pool(v: tuple[int, ...]) -> dict[str, Any]:
+    """Rare desert drops gated by killed_by_player + a Looting-scaled chance.
+    One stack of one of: dead_bush, cactus, or sugar_cane (desert plants).
+    All three items exist since 1.13, so this pool emits for every supported
+    target version.
+    """
+    item_names = (
+        "minecraft:dead_bush",
+        "minecraft:cactus",
+        "minecraft:sugar_cane",
+    )
+    pool = _rolls(v)
+    pool["conditions"] = [
+        {"condition": _ns(v, "minecraft:killed_by_player")},
+        _rare_drop_condition(v),
+    ]
+    entries: list[dict[str, Any]] = []
+    for item in item_names:
+        entry: dict[str, Any] = {"type": _ns(v, "minecraft:item"), "name": item}
+        if v < (1, 14):
+            entry["weight"] = 1
+        entries.append(entry)
+    pool["entries"] = entries
     return pool
 
 
@@ -275,11 +351,12 @@ def _camel_husk_pool() -> dict[str, Any]:
 def _loot_table(v: tuple[int, ...]) -> dict[str, Any]:
     pools: list[dict[str, Any]] = [
         _quantity_pool(v, "minecraft:rotten_flesh"),
-        _quantity_pool(v, "minecraft:sand"),
+        _split_quantity_pool(v, ("minecraft:sand", "minecraft:red_sand")),
     ]
     if _camel_husk(v):
         pools.append(_camel_husk_pool())
     pools.append(_rare_drop_pool(v))
+    pools.append(_desert_rare_drop_pool(v))
 
     table: dict[str, Any] = {}
     if _prefixed(v):
