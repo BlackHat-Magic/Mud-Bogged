@@ -212,6 +212,10 @@ def _merge_piglin_bartering(fmt: tuple[int, int]) -> dict[str, Any]:
     """Load the embedded vanilla piglin_bartering table and add our entries."""
     p = _VANILLA_BASE / _vanilla_dir(fmt) / "gameplay/piglin_bartering.json"
     table = json.loads(p.read_text())
+    assert len(table["pools"]) == 1, (
+        f"unexpected barter pool count {len(table['pools'])} for format {fmt}; "
+        f"piglin_bartering has historically been a single-pool table"
+    )
     pool = table["pools"][0]
     pool["entries"].extend(
         [_barter_book_entry(i) for i in range(1, MAX_ENCHANTMENT_LEVEL + 1)]

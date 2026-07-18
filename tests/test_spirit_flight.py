@@ -187,6 +187,13 @@ def test_piglin_bartering_has_spirit_flight_entries():
             )
         ]
         assert len(book_entries) == 5
+        levels = sorted(
+            fn["enchantments"]["spirit_flight:spirit_flight"]
+            for e in book_entries
+            for fn in e.get("functions", [])
+            if fn.get("function") == "minecraft:set_enchantments"
+        )
+        assert levels == [1, 2, 3, 4, 5], ver
         for e in book_entries:
             assert e["weight"] == 1
         # The 1 reference entry to spirit_flight:harness_1_5 with weight 5
@@ -201,21 +208,24 @@ def test_piglin_bartering_has_spirit_flight_entries():
 
 
 def test_piglin_bartering_vanilla_entries_preserved():
-    files = _build_files("1.21.6")
-    t = json.loads(files["data/minecraft/loot_table/gameplay/piglin_bartering.json"])
-    entries = t["pools"][0]["entries"]
-    # Soul Speed book at weight 5 must still be present
-    soul_book = [
-        e
-        for e in entries
-        if e.get("name") == "minecraft:book"
-        and any(
-            fn.get("function") == "minecraft:enchant_randomly"
-            and fn.get("options") == "minecraft:soul_speed"
-            for fn in e.get("functions", [])
+    for ver in ("1.21.6", "26.2"):
+        files = _build_files(ver)
+        t = json.loads(
+            files["data/minecraft/loot_table/gameplay/piglin_bartering.json"]
         )
-    ]
-    assert len(soul_book) == 1
-    assert soul_book[0]["weight"] == 5
-    # random_sequence preserved
-    assert t["random_sequence"] == "minecraft:gameplay/piglin_bartering"
+        entries = t["pools"][0]["entries"]
+        # Soul Speed book at weight 5 must still be present
+        soul_book = [
+            e
+            for e in entries
+            if e.get("name") == "minecraft:book"
+            and any(
+                fn.get("function") == "minecraft:enchant_randomly"
+                and fn.get("options") == "minecraft:soul_speed"
+                for fn in e.get("functions", [])
+            )
+        ]
+        assert len(soul_book) == 1, ver
+        assert soul_book[0]["weight"] == 5, ver
+        # random_sequence preserved
+        assert t["random_sequence"] == "minecraft:gameplay/piglin_bartering", ver
